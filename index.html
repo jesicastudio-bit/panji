@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=no">
+    <title>Panji & Faith</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- Latar Belakang Tekstur SVG (Tema Merah & Hitam) --- */
+        body {
+            background-color: #000000; /* Hitam Pekat */
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20H8V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z' fill='%23991b1b' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E");
+            overflow: hidden; 
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            color: #ffffff;
+            overscroll-behavior-y: none;
+            
+            /* ANTI-THEFT: Mencegah seleksi teks dan klik tahan di HP */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* --- Area Utama --- */
+        main {
+            flex-grow: 1;
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
+        /* --- MODE SLIDER 2D --- */
+        #flipbook-wrapper {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: default;
+        }
+        
+        #flipbook-wrapper.can-pan { cursor: grab; }
+        #flipbook-wrapper.is-panning { cursor: grabbing; }
+
+        #book-zoom-wrapper {
+            transition: transform 0.1s ease-out;
+            transform-origin: center center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            will-change: transform;
+        }
+        
+        #book-zoom-wrapper.dragging {
+            transition: none !important; 
+        }
+
+        .slider-container {
+            position: relative;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 15px 50px rgba(220,38,38,0.2);
+            background-color: #0a0000;
+            border: 1px solid #450a0a;
+        }
+
+        .slider-track {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
+        }
+
+        .slide {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background-color: #0a0000;
+        }
+
+        .slide img.page-img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill; 
+            pointer-events: none; 
+            -webkit-user-drag: none; 
+        }
+
+        /* --- UI Components --- */
+        .hidden { display: none !important; }
+
+        .floating-toolbar {
+            position: fixed;
+            bottom: max(15px, env(safe-area-inset-bottom));
+            left: 50%; 
+            transform: translateX(-50%) translateZ(0);
+            z-index: 50; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+            will-change: transform, opacity;
+        }
+
+        .toolbar-hidden {
+            transform: translate(-50%, 150%) translateZ(0) !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .side-btn {
+            position: absolute; top: 50%; transform: translateY(-50%) translateZ(0);
+            z-index: 40; cursor: pointer;
+            opacity: 0.2; transition: all 0.3s ease;
+            padding: 30px; border-radius: 20px;
+        }
+        
+        /* Hover Merah */
+        .side-btn:hover { opacity: 1; background: rgba(220, 38, 38, 0.3); backdrop-filter: blur(5px); }
+        .side-btn:active { transform: translateY(-50%) scale(0.9) translateZ(0); }
+        .side-btn.left { left: 2%; }
+        .side-btn.right { right: 2%; }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 14px; height: 14px;
+            background: #ef4444; /* Merah Terang */
+            border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.8);
+        }
+
+        .texture-btn.active {
+            border-color: #ef4444; 
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
+            background-color: #7f1d1d; 
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000000; border-radius: 4px; border: 1px solid #1a1a1a;}
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #7f1d1d; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ef4444; } 
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        #magnifier-lens {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border: 3px solid #ef4444; /* Merah */
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.5);
+            pointer-events: none;
+            background-repeat: no-repeat;
+            background-color: #0a0000;
+            z-index: 9999;
+            transform: translate(-50%, -50%); 
+            display: none;
+            transition: opacity 0.2s ease;
+        }
+        .magnifier-active { cursor: crosshair !important; }
+        .magnifier-active .slide { cursor: crosshair !important; }
+        
+        .thumb-img {
+            width: 120px; 
+            height: 80px; 
+            object-fit: cover;
+            object-position: center;
+            background-color: #0a0000;
+        }
+        @media (min-width: 768px) {
+            .thumb-img { width: 160px; height: 100px; }
+        }
+    </style>
+</head>
+<body class="font-sans" oncontextmenu="return false;">
+
+    <main id="main-area">
+
+        <audio id="bgm-player" loop></audio>
+        <!-- Audio SFX (Gesekan) -->
+        <audio id="sfx-player" src="audio/turn.mp3" preload="auto"></audio>
+
+        <!-- Layar Memuat (Loading) -->
+        <div id="loading-screen" class="absolute inset-0 z-[100] flex items-center justify-center bg-[#000000] bg-cover bg-center" style="background-image: url('img/SPLASH SCREEN.jpg');">
+            <div class="absolute inset-0 bg-[#000000] bg-opacity-80 backdrop-blur-sm"></div>
+            
+            <div class="text-center max-w-md w-full px-4 relative z-10">
+                <h1 class="text-4xl md:text-5xl font-bold text-[#ffffff] uppercase tracking-widest mb-2 font-serif drop-shadow-lg">PANJI & FAITH</h1>
+                <div class="font-bold text-[#ef4444] mb-6 tracking-widest text-sm drop-shadow-md">EXCLUSIVE ALBUM</div>
+
+                <div class="relative w-24 h-24 mx-auto mb-8">
+                    <img src="img/ICON.png" class="absolute inset-0 w-full h-full object-contain rounded-full drop-shadow-2xl z-10 p-2" alt="Icon" onerror="this.style.display='none'">
+                    <div class="absolute inset-0 border-4 border-[#7f1d1d] rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-[#ef4444] rounded-full border-t-transparent animate-spin z-20"></div>
+                </div>
+                
+                <p id="loading-status" class="text-sm font-semibold text-[#fca5a5] mt-2 mb-4 animate-pulse">Menyiapkan halaman...</p>
+
+                <div class="w-full bg-[#1a0000] rounded-full h-4 overflow-hidden shadow-inner border border-[#450a0a]">
+                    <div id="progress-bar" class="bg-gradient-to-r from-[#7f1d1d] via-[#ef4444] to-[#7f1d1d] h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teks Credit Bawah -->
+        <div class="absolute bottom-4 right-6 text-sm text-[#737373] z-40 pointer-events-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            by <a href="https://www.instagram.com/hendratno.penok/" target="_blank" class="pointer-events-auto text-[#ef4444] hover:text-[#ffffff] transition hover:underline">@hendratno.penok</a> &bull; 2026
+        </div>
+
+        <!-- TAMPILAN MODE SLIDER HORIZONTAL -->
+        <div id="flipbook-wrapper" class="hidden">
+            
+            <div id="side-prev" class="side-btn left hidden" onclick="turnPrev()"><i class="fas fa-chevron-left text-6xl text-[#ffffff] drop-shadow-[0_2px_10px_rgba(0,0,0,1)]"></i></div>
+            <div id="side-next" class="side-btn right hidden" onclick="turnNext()"><i class="fas fa-chevron-right text-6xl text-[#ffffff] drop-shadow-[0_2px_10px_rgba(0,0,0,1)]"></i></div>
+
+            <div id="magnifier-lens"></div>
+
+            <div id="book-zoom-wrapper">
+                <div class="slider-container" id="main-book-container">
+                    <div id="slider-track" class="slider-track">
+                        <!-- Slide Halaman akan di-inject via JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PANEL THUMBNAILS -->
+            <div id="thumbnail-drawer" class="hidden absolute bottom-28 left-1/2 transform -translate-x-1/2 w-[90vw] md:w-[80vw] max-w-6xl bg-[#000000] bg-opacity-95 backdrop-blur-xl border border-[#7f1d1d] p-5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-40 flex flex-col transition-all duration-300" style="bottom: max(5rem, calc(4rem + env(safe-area-inset-bottom)));">
+                <div class="flex justify-between items-center w-full mb-4 px-2">
+                    <h3 class="text-[#ffffff] font-bold text-sm tracking-wider uppercase"><i class="fas fa-th-large mr-2 text-[#ef4444]"></i> Navigasi Halaman</h3>
+                    <button id="close-thumbnails" class="text-[#737373] hover:text-[#ef4444] transition" title="Tutup Panel"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <div id="thumbnail-container" class="flex overflow-x-auto space-x-4 custom-scrollbar items-end pb-4 w-full">
+                </div>
+            </div>
+
+            <!-- PANEL PENGATURAN LATAR BELAKANG -->
+            <div id="bg-settings-panel" class="hidden absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-[#000000] bg-opacity-95 backdrop-blur-xl border border-[#7f1d1d] p-5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 w-80 transition-all duration-300">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[#ffffff] font-bold text-sm"><i class="fas fa-paint-roller mr-2 text-[#ef4444]"></i>Tema & Latar Belakang</h3>
+                    <button id="close-bg-settings" class="text-[#737373] hover:text-[#ef4444] transition"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <div class="mb-5">
+                    <label class="block text-xs text-[#a3a3a3] mb-2 font-semibold tracking-wider uppercase">Warna Dasar</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="color" id="bg-color-picker" value="#000000" class="w-10 h-10 rounded-lg cursor-pointer bg-[#0a0000] border border-[#7f1d1d] shadow-inner">
+                        <div class="text-xs text-[#ffffff] font-mono bg-[#0a0000] px-3 py-2 rounded-lg border border-[#7f1d1d] w-full text-center" id="bg-color-hex">#000000</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs text-[#a3a3a3] mb-2 font-semibold tracking-wider uppercase">Pola Tekstur</label>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button class="texture-btn active w-full aspect-square rounded-lg border border-[#450a0a] hover:border-[#ef4444] bg-[#0a0000] flex flex-col items-center justify-center transition group" data-texture="geometric" title="Geometris (Default)"><i class="fas fa-shapes text-[#737373] group-hover:text-[#ffffff]"></i></button>
+                        <button class="texture-btn w-full aspect-square rounded-lg border border-[#450a0a] hover:border-[#ef4444] bg-[#0a0000] flex flex-col items-center justify-center transition group" data-texture="dots" title="Titik-titik"><i class="fas fa-braille text-[#737373] group-hover:text-[#ffffff]"></i></button>
+                        <button class="texture-btn w-full aspect-square rounded-lg border border-[#450a0a] hover:border-[#ef4444] bg-[#0a0000] flex flex-col items-center justify-center transition group" data-texture="grid" title="Garis Kotak"><i class="fas fa-border-all text-[#737373] group-hover:text-[#ffffff]"></i></button>
+                        <button class="texture-btn w-full aspect-square rounded-lg border border-[#450a0a] hover:border-[#ef4444] bg-[#0a0000] flex flex-col items-center justify-center transition group" data-texture="none" title="Polos (Hanya Warna)"><i class="fas fa-ban text-[#737373] group-hover:text-[#ffffff]"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL PENGATURAN SUARA -->
+            <div id="sound-settings-panel" class="hidden absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-[#000000] bg-opacity-95 backdrop-blur-xl border border-[#7f1d1d] p-5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 w-80 transition-all duration-300">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-[#ffffff] font-bold text-sm"><i class="fas fa-music mr-2 text-[#ef4444]"></i>Pengaturan Audio</h3>
+                    <button id="close-sound-settings" class="text-[#737373] hover:text-[#ef4444] transition"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <div class="mb-5">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs text-[#a3a3a3] font-semibold tracking-wider uppercase">Efek Geser</label>
+                        <i id="sfx-icon" class="fas fa-volume-up text-[#ffffff]"></i>
+                    </div>
+                    <input type="range" id="sfx-slider" min="0" max="1" step="0.05" value="0.8" class="w-full h-1.5 bg-[#7f1d1d] rounded-lg appearance-none cursor-pointer outline-none">
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs text-[#a3a3a3] font-semibold tracking-wider uppercase">Volume Musik (BGM)</label>
+                        <i id="bgm-icon" class="fas fa-volume-up text-[#ffffff]"></i>
+                    </div>
+                    <input type="range" id="bgm-slider" min="0" max="1" step="0.05" value="0.25" class="w-full h-1.5 bg-[#7f1d1d] rounded-lg appearance-none cursor-pointer outline-none">
+                </div>
+
+                <div class="mt-4">
+                    <label class="block text-xs text-[#a3a3a3] mb-2 font-semibold tracking-wider uppercase">Pilihan Lagu</label>
+                    <select id="bgm-select" class="w-full bg-[#0a0000] border border-[#450a0a] text-[#ffffff] text-sm rounded-lg focus:ring-[#ef4444] focus:border-[#ef4444] block p-2 outline-none cursor-pointer">
+                        <option value="audio/Kiss%20the%20Rain.mp3">Kiss the Rain</option>
+                        <option value="audio/River%20Flows%20in%20You.mp3">River Flows in You</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tombol Pemanggil Toolbar -->
+            <button id="btn-show-toolbar" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#000000] bg-opacity-90 text-[#ffffff] rounded-full w-12 h-12 flex items-center justify-center z-40 backdrop-blur-md border border-[#7f1d1d] shadow-[0_5px_15px_rgba(0,0,0,0.8)] hover:bg-[#ef4444] hover:text-[#ffffff] transition-all">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+
+            <!-- TOOLBAR BAWAH -->
+            <div id="main-toolbar" class="floating-toolbar bg-[#000000] bg-opacity-90 backdrop-blur-lg px-2 sm:px-4 py-2 sm:py-3 rounded-full flex items-center space-x-1 sm:space-x-2 border border-[#7f1d1d] max-w-[95vw] overflow-x-auto no-scrollbar">
+                
+                <button id="btn-hide-toolbar" class="text-[#a3a3a3] hover:text-[#ffffff] hover:bg-[#b91c1c] px-3 h-8 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Sembunyikan Menu">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+
+                <div class="w-px h-5 sm:h-6 bg-[#450a0a] mx-1 flex-shrink-0"></div>
+
+                <button id="btn-home-flip" class="text-[#ef4444] hover:text-[#ffffff] hover:bg-[#b91c1c] px-3 sm:px-4 h-8 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Kembali ke Awal">
+                    <i class="fas fa-home"></i>
+                </button>
+
+                <button id="btn-prev" class="text-[#a3a3a3] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center disabled:opacity-30 flex-shrink-0">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="flex items-center justify-center font-mono text-[#ffffff] text-xs sm:text-sm bg-[#0a0000] border border-[#450a0a] px-2 py-1 rounded-md transition focus-within:border-[#ef4444] flex-shrink-0">
+                    <input type="number" id="page-input" min="1" value="1" class="w-6 sm:w-8 bg-transparent text-center outline-none text-[#ffffff] font-bold">
+                    <span id="page-total" class="text-[#a3a3a3] ml-1">/ 44</span>
+                </div>
+                
+                <button id="btn-next" class="text-[#a3a3a3] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center disabled:opacity-30 flex-shrink-0">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <button id="btn-autoplay" class="text-[#ffffff] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0 ml-1" title="Putar Otomatis">
+                    <i id="autoplay-icon" class="fas fa-play"></i>
+                </button>
+
+                <div class="w-px h-5 sm:h-6 bg-[#450a0a] mx-1 flex-shrink-0"></div>
+
+                <button id="btn-zoom-out" class="text-[#a3a3a3] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Perkecil">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <span id="zoom-indicator" class="text-xs font-mono text-[#a3a3a3] w-10 sm:w-12 text-center flex-shrink-0 hidden md:block mt-1">100%</span>
+                <button id="btn-zoom-in" class="text-[#a3a3a3] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Perbesar">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+
+                <div class="w-px h-5 sm:h-6 bg-[#450a0a] mx-1 flex-shrink-0"></div>
+                
+                <button id="btn-magnifier" class="text-[#ffffff] hover:text-[#ffffff] hover:bg-[#b91c1c] px-3 sm:px-4 h-8 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Kaca Pembesar (Pilih & Geser)">
+                    <i class="fas fa-search-plus"></i>
+                    <span class="ml-2 text-sm font-semibold hidden lg:block">Lup</span>
+                </button>
+
+                <button id="btn-thumbnails" class="text-[#ffffff] hover:text-[#ffffff] hover:bg-[#b91c1c] px-3 sm:px-4 h-8 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Daftar Halaman">
+                    <i class="fas fa-th-large"></i>
+                </button>
+
+                <div class="w-px h-5 sm:h-6 bg-[#450a0a] mx-1 flex-shrink-0"></div>
+
+                <button id="btn-mute" class="text-[#ffffff] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Mute/Unmute Musik">
+                    <i id="mute-icon" class="fas fa-volume-up"></i>
+                </button>
+
+                <button id="btn-sound-menu" class="text-[#ffffff] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Pengaturan Audio">
+                    <i class="fas fa-music"></i>
+                </button>
+
+                <button id="btn-theme" class="text-[#ffffff] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Ubah Tema">
+                    <i class="fas fa-palette"></i>
+                </button>
+
+                <div class="w-px h-5 sm:h-6 bg-[#450a0a] mx-1 flex-shrink-0"></div>
+
+                <button onclick="toggleFullScreen()" class="text-[#a3a3a3] hover:text-[#ffffff] hover:bg-[#b91c1c] w-8 h-8 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center flex-shrink-0" title="Layar Penuh">
+                    <i class="fas fa-expand fs-icon"></i>
+                </button>
+            </div>
+            
+            <button id="btn-reset-view" class="fixed top-6 right-6 bg-[#b91c1c] bg-opacity-90 backdrop-blur-md text-[#ffffff] rounded-full px-4 py-2 sm:px-5 sm:py-3 flex items-center justify-center z-50 shadow-[0_0_15px_rgba(220,38,38,0.8)] border border-[#ef4444] transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-5 hover:bg-[#991b1b] hover:scale-105" title="Kembali ke Tengah">
+                <i class="fas fa-compress-arrows-alt"></i>
+                <span class="ml-2 text-sm font-bold hidden sm:block">Tengah</span>
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // Mencegah Klik Kanan Pada Dokumen untuk Keamanan Asset
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        const TOTAL_PAGES = 44; // Disesuaikan menjadi 44 Halaman Horizontal
+        const IMG_FOLDER = 'pages/';
+        
+        let currentPage = 1; 
+        let isSliding = false;
+
+        let currentZoom = 1.0;
+        const ZOOM_STEP = 0.1;
+        const MAX_ZOOM = 3.0;
+        const MIN_ZOOM = 0.5;
+        let isPanning = false;
+        let hasDragged = false; 
+        let startX, startY;
+        let translateX = 0, translateY = 0;
+
+        let autoPlayInterval = null;
+        let isAutoPlaying = false;
+        let isMagnifierMode = false;
+
+        let sfxVolume = 0.8;
+        let bgmVolume = 0.25;
+        const bgmPlayer = document.getElementById('bgm-player');
+        const sfxPlayer = document.getElementById('sfx-player');
+        let isAudioInitiated = false;
+        let isMuted = false;
+
+        const loadingScreen = document.getElementById('loading-screen');
+        const flipbookWrapper = document.getElementById('flipbook-wrapper');
+        const sliderTrack = document.getElementById('slider-track');
+        const bookZoomWrapper = document.getElementById('book-zoom-wrapper');
+        const bookContainer = document.getElementById('main-book-container');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        const sidePrev = document.getElementById('side-prev');
+        const sideNext = document.getElementById('side-next');
+        const pageInput = document.getElementById('page-input');
+        const pageTotal = document.getElementById('page-total');
+        const zoomIndicator = document.getElementById('zoom-indicator');
+        const btnHomeFlip = document.getElementById('btn-home-flip');
+        
+        const btnSoundMenu = document.getElementById('btn-sound-menu');
+        const soundSettingsPanel = document.getElementById('sound-settings-panel');
+        const btnCloseSoundSettings = document.getElementById('close-sound-settings');
+        const sfxSlider = document.getElementById('sfx-slider');
+        const bgmSlider = document.getElementById('bgm-slider');
+        const sfxIcon = document.getElementById('sfx-icon');
+        const bgmIcon = document.getElementById('bgm-icon');
+        const bgmSelect = document.getElementById('bgm-select');
+
+        const btnMute = document.getElementById('btn-mute');
+        const muteIcon = document.getElementById('mute-icon');
+
+        const btnAutoPlay = document.getElementById('btn-autoplay');
+        const autoplayIcon = document.getElementById('autoplay-icon');
+        const btnMagnifier = document.getElementById('btn-magnifier');
+        const magnifierLens = document.getElementById('magnifier-lens');
+        
+        const btnTheme = document.getElementById('btn-theme');
+        const bgSettingsPanel = document.getElementById('bg-settings-panel');
+        const btnCloseBgSettings = document.getElementById('close-bg-settings');
+        const bgColorPicker = document.getElementById('bg-color-picker');
+        const bgColorHex = document.getElementById('bg-color-hex');
+        const textureBtns = document.querySelectorAll('.texture-btn');
+        
+        const btnThumbnails = document.getElementById('btn-thumbnails');
+        const thumbnailDrawer = document.getElementById('thumbnail-drawer');
+        const thumbnailContainer = document.getElementById('thumbnail-container');
+        const btnCloseThumbnails = document.getElementById('close-thumbnails');
+
+        const btnHideToolbar = document.getElementById('btn-hide-toolbar');
+        const btnShowToolbar = document.getElementById('btn-show-toolbar');
+        const mainToolbar = document.getElementById('main-toolbar');
+        let isToolbarVisible = true;
+        
+        const btnResetView = document.getElementById('btn-reset-view');
+
+        function getPageFilename(num) {
+            return `page_${String(num).padStart(3, '0')}.webp`;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            bgmPlayer.src = bgmSelect.value;
+            bgmPlayer.load(); 
+            pageTotal.innerText = `/ ${TOTAL_PAGES}`;
+            
+            const firstImg = new Image();
+            firstImg.src = IMG_FOLDER + getPageFilename(1);
+            firstImg.onload = () => {
+                // Kalkulasi rasio aspek untuk single page (landscape)
+                const bookAspectRatio = firstImg.naturalWidth / firstImg.naturalHeight;
+                bookContainer.style.aspectRatio = bookAspectRatio.toString();
+                
+                progressBar.style.width = '50%'; 
+                
+                buildSliderDOM();
+                
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        loadingScreen.classList.add('hidden');
+                        flipbookWrapper.classList.remove('hidden');
+                        updateBookSize();
+                    }, 500);
+                }, 500);
+            };
+            
+            firstImg.onerror = () => {
+                alert("Gagal load gambar pertama. Pastikan folder 'pages' ada dan format filenya page_001.webp");
+                bookContainer.style.aspectRatio = "1.5";
+                buildSliderDOM();
+                loadingScreen.classList.add('hidden');
+                flipbookWrapper.classList.remove('hidden');
+            };
+        });
+
+        function initAudioOnFirstInteraction() {
+            if (!isAudioInitiated && !isMuted) {
+                bgmPlayer.volume = bgmVolume;
+                let playPromise = bgmPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        isAudioInitiated = true;
+                        muteIcon.className = 'fas fa-volume-up text-[#ffffff]';
+                    }).catch(e => {
+                        console.log("Auto-play audio diblokir", e);
+                        isMuted = true;
+                        bgmPlayer.muted = true;
+                        muteIcon.className = 'fas fa-volume-mute text-[#737373]';
+                    });
+                }
+            }
+        }
+
+        document.body.addEventListener('click', initAudioOnFirstInteraction, { once: true });
+        document.body.addEventListener('touchstart', initAudioOnFirstInteraction, { once: true });
+
+        btnMute.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            isMuted = !isMuted;
+            bgmPlayer.muted = isMuted;
+            if (isMuted) {
+                muteIcon.className = 'fas fa-volume-mute text-[#737373]';
+            } else {
+                muteIcon.className = 'fas fa-volume-up text-[#ffffff]';
+                if (bgmPlayer.paused) {
+                    bgmPlayer.play().catch(e => console.log("Gagal memutar audio:", e));
+                    isAudioInitiated = true;
+                }
+            }
+        });
+
+        function buildSliderDOM() {
+            sliderTrack.innerHTML = '';
+            
+            for (let i = 1; i <= TOTAL_PAGES; i++) {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                slide.dataset.page = i;
+
+                const img = document.createElement('img');
+                img.dataset.src = IMG_FOLDER + getPageFilename(i);
+                img.alt = `Page ${i}`;
+                img.className = 'page-img';
+                
+                slide.appendChild(img);
+                sliderTrack.appendChild(slide);
+
+                // Klik slide untuk memajukan halaman (kecuali mode magnifier/dragging)
+                slide.addEventListener('click', () => { 
+                    if(!hasDragged && !isMagnifierMode && i === currentPage) turnNext(); 
+                });
+            }
+
+            updateControls();
+            loadVisibleImages(); 
+        }
+
+        function loadVisibleImages() {
+            // Load current, prev, and next slides for smooth scrolling
+            const pagesToLoad = [currentPage - 1, currentPage, currentPage + 1];
+            pagesToLoad.forEach(idx => {
+                if (idx >= 1 && idx <= TOTAL_PAGES) {
+                    const slide = document.querySelector(`.slide[data-page="${idx}"]`);
+                    if (slide) {
+                        const img = slide.querySelector('img.page-img');
+                        if (img && img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src'); 
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateControls() {
+            btnPrev.disabled = currentPage === 1;
+            btnNext.disabled = currentPage === TOTAL_PAGES;
+            
+            sidePrev.style.display = currentPage === 1 ? 'none' : 'block';
+            sideNext.style.display = currentPage === TOTAL_PAGES ? 'none' : 'block';
+            
+            pageInput.value = currentPage;
+        }
+
+        btnHomeFlip.addEventListener('click', () => goToPage(1));
+
+        function goToPage(target) {
+            if (target < 1) target = 1;
+            if (target > TOTAL_PAGES) target = TOTAL_PAGES;
+            if (target === currentPage) return;
+
+            currentPage = target;
+            const translateX = -(currentPage - 1) * 100;
+            sliderTrack.style.transform = `translateX(${translateX}%)`;
+            
+            updateControls();
+            loadVisibleImages(); 
+            playSlideSound();
+            
+            if (isAutoPlaying && isSliding) toggleAutoPlay();
+        }
+
+        function turnNext() {
+            if (isSliding || currentPage >= TOTAL_PAGES) {
+                if (isAutoPlaying && currentPage >= TOTAL_PAGES) toggleAutoPlay();
+                return;
+            }
+            isSliding = true;
+            goToPage(currentPage + 1);
+            setTimeout(() => isSliding = false, 600); // Sesuaikan dengan durasi CSS transition
+        }
+
+        function turnPrev() {
+            if (isSliding || currentPage <= 1) return;
+            isSliding = true;
+            goToPage(currentPage - 1);
+            setTimeout(() => isSliding = false, 600);
+        }
+
+        btnSoundMenu.addEventListener('click', () => { soundSettingsPanel.classList.toggle('hidden'); closeOtherPanels('sound'); });
+        btnCloseSoundSettings.addEventListener('click', () => soundSettingsPanel.classList.add('hidden'));
+
+        sfxSlider.addEventListener('input', (e) => {
+            sfxVolume = parseFloat(e.target.value);
+            sfxIcon.className = sfxVolume === 0 ? 'fas fa-volume-mute text-[#737373]' : 'fas fa-volume-up text-[#ffffff]';
+        });
+
+        bgmSlider.addEventListener('input', (e) => {
+            bgmVolume = parseFloat(e.target.value);
+            bgmPlayer.volume = bgmVolume;
+            bgmIcon.className = bgmVolume === 0 ? 'fas fa-volume-mute text-[#737373]' : 'fas fa-volume-up text-[#ffffff]';
+            if (bgmVolume > 0 && bgmPlayer.paused && isAudioInitiated && !isMuted) bgmPlayer.play();
+        });
+
+        if(bgmSelect) {
+            bgmSelect.addEventListener('change', (e) => {
+                bgmPlayer.src = e.target.value;
+                bgmPlayer.load(); 
+                if (!bgmPlayer.paused || isAudioInitiated) {
+                    bgmPlayer.play().catch(err => console.log("Pemutaran lagu terblokir:", err));
+                    isMuted = false;
+                    bgmPlayer.muted = false;
+                    muteIcon.className = 'fas fa-volume-up text-[#ffffff]';
+                }
+            });
+        }
+
+        function playSlideSound() {
+            if (sfxVolume === 0) return;
+            try {
+                sfxPlayer.currentTime = 0; 
+                sfxPlayer.volume = sfxVolume;
+                let playPromise = sfxPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(err => console.log("SFX menunggu interaksi:", err));
+                }
+            } catch(e) {}
+        }
+
+        function toggleAutoPlay() {
+            if (isAutoPlaying) {
+                clearInterval(autoPlayInterval);
+                isAutoPlaying = false;
+                autoplayIcon.className = 'fas fa-play';
+                btnAutoPlay.classList.remove('text-[#ef4444]', 'bg-[#7f1d1d]');
+                btnAutoPlay.classList.add('text-[#ffffff]');
+            } else {
+                if (currentPage >= TOTAL_PAGES) goToPage(1);
+                isAutoPlaying = true;
+                autoplayIcon.className = 'fas fa-pause';
+                btnAutoPlay.classList.remove('text-[#ffffff]');
+                btnAutoPlay.classList.add('text-[#ef4444]', 'bg-[#7f1d1d]');
+                
+                autoPlayInterval = setInterval(() => {
+                    if (currentPage >= TOTAL_PAGES) toggleAutoPlay(); 
+                    else turnNext();
+                }, 4000); // Jeda sedikit lebih lama untuk slider
+            }
+        }
+        btnAutoPlay.addEventListener('click', toggleAutoPlay);
+
+        btnMagnifier.addEventListener('click', () => {
+            isMagnifierMode = !isMagnifierMode;
+            if (isMagnifierMode) {
+                btnMagnifier.classList.replace('text-[#ffffff]', 'text-[#ef4444]');
+                btnMagnifier.classList.add('bg-[#7f1d1d]');
+                flipbookWrapper.classList.add('magnifier-active');
+            } else {
+                btnMagnifier.classList.replace('text-[#ef4444]', 'text-[#ffffff]');
+                btnMagnifier.classList.remove('bg-[#7f1d1d]');
+                flipbookWrapper.classList.remove('magnifier-active');
+                magnifierLens.style.display = 'none';
+            }
+        });
+
+        function handleMagnifier(e) {
+            if (!isMagnifierMode) return;
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // Ambil gambar di slide yang saat ini aktif
+            const activeSlide = document.querySelector(`.slide[data-page="${currentPage}"]`);
+            let imgElement = activeSlide ? activeSlide.querySelector('img.page-img') : null;
+
+            if (imgElement && imgElement.src) {
+                magnifierLens.style.display = 'block';
+                magnifierLens.style.left = clientX + 'px';
+                magnifierLens.style.top = clientY + 'px';
+
+                const rect = imgElement.getBoundingClientRect();
+                const x = clientX - rect.left;
+                const y = clientY - rect.top;
+
+                // Hanya tampilkan loop jika kursor berada di dalam area gambar
+                if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+                    magnifierLens.style.backgroundImage = `url('${imgElement.src}')`;
+                    
+                    const zoomFactor = 2.5; 
+                    magnifierLens.style.backgroundSize = `${rect.width * zoomFactor}px ${rect.height * zoomFactor}px`;
+                    
+                    const bgPosX = (x * zoomFactor) - (300 / 2); 
+                    const bgPosY = (y * zoomFactor) - (300 / 2);
+                    magnifierLens.style.backgroundPosition = `-${bgPosX}px -${bgPosY}px`;
+                } else {
+                    magnifierLens.style.display = 'none';
+                }
+
+            } else {
+                magnifierLens.style.display = 'none';
+            }
+        }
+
+        let magnifierTicking = false;
+        function onMagnifierMove(e) {
+            if (!isMagnifierMode) return;
+            if (!magnifierTicking) {
+                window.requestAnimationFrame(() => {
+                    handleMagnifier(e);
+                    magnifierTicking = false;
+                });
+                magnifierTicking = true;
+            }
+        }
+
+        flipbookWrapper.addEventListener('mousemove', onMagnifierMove);
+        flipbookWrapper.addEventListener('touchmove', onMagnifierMove, { passive: true });
+        flipbookWrapper.addEventListener('mouseleave', () => magnifierLens.style.display = 'none');
+        flipbookWrapper.addEventListener('touchend', () => magnifierLens.style.display = 'none');
+
+        const bgTextures = {
+            'geometric': `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20H8V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z' fill='%23991b1b' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+            'dots': `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='2' fill='%23ef4444' fill-opacity='0.2'/%3E%3C/svg%3E")`,
+            'grid': `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0L0 0 0 40' fill='none' stroke='%237f1d1d' stroke-width='1' stroke-opacity='0.3'/%3E%3C/svg%3E")`,
+            'none': 'none'
+        };
+
+        function closeOtherPanels(except) {
+            if (except !== 'theme') bgSettingsPanel.classList.add('hidden');
+            if (except !== 'sound') soundSettingsPanel.classList.add('hidden');
+            if (except !== 'thumb') thumbnailDrawer.classList.add('hidden');
+        }
+
+        btnTheme.addEventListener('click', () => { bgSettingsPanel.classList.toggle('hidden'); closeOtherPanels('theme'); });
+        btnCloseBgSettings.addEventListener('click', () => { bgSettingsPanel.classList.add('hidden'); });
+
+        bgColorPicker.addEventListener('input', (e) => {
+            document.body.style.backgroundColor = e.target.value;
+            bgColorHex.innerText = e.target.value;
+        });
+
+        textureBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                textureBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.body.style.backgroundImage = bgTextures[btn.getAttribute('data-texture')];
+            });
+        });
+
+        function toggleToolbar() {
+            isToolbarVisible = !isToolbarVisible;
+            if (isToolbarVisible) {
+                mainToolbar.classList.remove('toolbar-hidden');
+                btnShowToolbar.classList.add('hidden');
+            } else {
+                mainToolbar.classList.add('toolbar-hidden');
+                btnShowToolbar.classList.remove('hidden');
+                closeOtherPanels('none'); 
+            }
+            updateBookSize();
+        }
+
+        btnHideToolbar.addEventListener('click', toggleToolbar);
+        btnShowToolbar.addEventListener('click', toggleToolbar);
+
+        flipbookWrapper.addEventListener('click', (e) => {
+            if (!hasDragged && !isMagnifierMode && (e.target === flipbookWrapper || e.target === bookZoomWrapper || e.target === bookContainer || e.target.classList.contains('slide'))) {
+                toggleToolbar();
+            }
+        });
+
+        function updateBookSize() {
+            if (!bookContainer.style.aspectRatio) return;
+            const ratioVal = parseFloat(bookContainer.style.aspectRatio);
+            const screenRatio = window.innerWidth / window.innerHeight;
+            
+            let maxHeight = isToolbarVisible ? 82 : 95;
+            if (screenRatio > ratioVal) {
+                bookContainer.style.height = `${maxHeight}dvh`;
+                bookContainer.style.width = `calc(${maxHeight}dvh * ${ratioVal})`;
+            } else {
+                bookContainer.style.width = '98vw';
+                bookContainer.style.height = `calc(98vw / ${ratioVal})`;
+            }
+        }
+
+        pageInput.addEventListener('change', (e) => {
+            let targetPage = parseInt(e.target.value);
+            if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= TOTAL_PAGES) {
+                goToPage(targetPage);
+            } else { updateControls(); }
+        });
+
+        btnThumbnails.addEventListener('click', () => { 
+            thumbnailDrawer.classList.toggle('hidden'); 
+            closeOtherPanels('thumb');
+            if (thumbnailContainer.innerHTML.trim() === '') generateThumbnails();
+        });
+        
+        btnCloseThumbnails.addEventListener('click', () => thumbnailDrawer.classList.add('hidden'));
+
+        function generateThumbnails() {
+            thumbnailContainer.innerHTML = ''; 
+            for (let i = 1; i <= TOTAL_PAGES; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex-shrink-0 cursor-pointer group flex flex-col items-center space-y-2 hover:-translate-y-2 transition transform duration-200';
+                wrapper.onclick = () => {
+                    goToPage(i);
+                    thumbnailDrawer.classList.add('hidden');
+                };
+                
+                const img = document.createElement('img');
+                img.className = 'thumb-img rounded border border-[#450a0a] shadow-md group-hover:border-[#ef4444] transition';
+                img.loading = "lazy";
+                img.src = IMG_FOLDER + getPageFilename(i);
+                
+                const label = document.createElement('span');
+                label.className = 'text-xs text-[#a3a3a3] group-hover:text-[#ffffff] font-mono font-bold';
+                label.innerText = `Hal ${i}`;
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(label);
+                thumbnailContainer.appendChild(wrapper);
+            }
+        }
+
+        let transformTicking = false;
+        
+        function applyTransform() {
+            if (!transformTicking) {
+                window.requestAnimationFrame(() => {
+                    currentZoom = Math.round(currentZoom * 100) / 100;
+                    bookZoomWrapper.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+                    if(zoomIndicator) zoomIndicator.innerText = `${Math.round(currentZoom * 100)}%`;
+                    
+                    if (currentZoom > 1.0) flipbookWrapper.classList.add('can-pan');
+                    else flipbookWrapper.classList.remove('can-pan');
+                    
+                    if (currentZoom !== 1.0 || translateX !== 0 || translateY !== 0) {
+                        btnResetView.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-5');
+                        btnResetView.classList.add('opacity-100', 'translate-y-0');
+                    } else {
+                        btnResetView.classList.remove('opacity-100', 'translate-y-0');
+                        btnResetView.classList.add('opacity-0', 'pointer-events-none', '-translate-y-5');
+                    }
+                    transformTicking = false;
+                });
+                transformTicking = true;
+            }
+        }
+
+        function resetTransform() {
+            currentZoom = 1.0;
+            translateX = 0; translateY = 0;
+            bookZoomWrapper.style.transition = 'transform 0.3s ease-out';
+            applyTransform();
+            setTimeout(() => { bookZoomWrapper.style.transition = ''; }, 300);
+        }
+
+        btnResetView.addEventListener('click', resetTransform);
+
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+
+        if(btnZoomIn) btnZoomIn.addEventListener('click', () => { if (currentZoom < MAX_ZOOM) { currentZoom += ZOOM_STEP; applyTransform(); }});
+        if(btnZoomOut) btnZoomOut.addEventListener('click', () => { if (currentZoom > MIN_ZOOM) { currentZoom -= ZOOM_STEP; applyTransform(); } if (currentZoom <= 1.0) resetTransform();});
+
+        flipbookWrapper.addEventListener('wheel', (e) => {
+            if (isMagnifierMode) return; 
+            e.preventDefault(); 
+            if (e.deltaY < 0 && currentZoom < MAX_ZOOM) currentZoom += ZOOM_STEP;
+            else if (e.deltaY > 0 && currentZoom > MIN_ZOOM) currentZoom -= ZOOM_STEP;
+            
+            if (currentZoom < MIN_ZOOM) currentZoom = MIN_ZOOM;
+            if (currentZoom <= 1.0) resetTransform();
+            else applyTransform();
+        }, { passive: false });
+
+        let touchStartX = null;
+        let initialPinchDistance = null;
+        let initialZoom = 1.0;
+        let lastTapTime = 0;
+
+        flipbookWrapper.addEventListener('touchstart', (e) => {
+            if (isMagnifierMode || e.target.closest('.floating-toolbar') || e.target.closest('button') || e.target.closest('#thumbnail-drawer') || e.target.closest('.absolute.bottom-24') || e.target.closest('a')) return;
+            
+            if (e.touches.length === 1) {
+                if (currentZoom > 1.0) {
+                    isPanning = true;
+                    hasDragged = false;
+                    bookZoomWrapper.classList.add('dragging');
+                    startX = e.touches[0].clientX - translateX;
+                    startY = e.touches[0].clientY - translateY;
+                } else {
+                    touchStartX = e.touches[0].clientX;
+                }
+            } else if (e.touches.length === 2) {
+                isPanning = false;
+                bookZoomWrapper.classList.add('dragging');
+                initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                initialZoom = currentZoom;
+            }
+        }, { passive: false });
+
+        flipbookWrapper.addEventListener('touchmove', (e) => {
+            if (isMagnifierMode) return;
+            
+            if (e.touches.length === 1 && isPanning) {
+                e.preventDefault(); 
+                hasDragged = true;
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                applyTransform();
+            } else if (e.touches.length === 2 && initialPinchDistance) {
+                e.preventDefault(); 
+                const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const scale = currentDistance / initialPinchDistance;
+                currentZoom = Math.min(Math.max(MIN_ZOOM, initialZoom * scale), MAX_ZOOM);
+                applyTransform();
+            }
+        }, { passive: false });
+
+        flipbookWrapper.addEventListener('touchend', (e) => {
+            if (isMagnifierMode) return;
+            
+            if (isPanning || initialPinchDistance) {
+                isPanning = false;
+                bookZoomWrapper.classList.remove('dragging');
+                setTimeout(() => hasDragged = false, 50);
+            }
+            initialPinchDistance = null;
+
+            if (currentZoom <= 1.0 && touchStartX !== null && e.changedTouches.length === 1) {
+                let dx = touchStartX - e.changedTouches[0].clientX;
+                if (dx > 50) { turnNext(); touchStartX = null; } 
+                else if (dx < -50) { turnPrev(); touchStartX = null; }
+            }
+
+            if (e.target.closest('a')) return;
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+            
+            if (tapLength < 300 && tapLength > 0 && !hasDragged) {
+                if (currentZoom === 1.0) {
+                    currentZoom = 2.0;
+                    applyTransform();
+                } else {
+                    resetTransform(); 
+                }
+                e.preventDefault();
+            }
+            lastTapTime = currentTime;
+        });
+
+        flipbookWrapper.addEventListener('mousedown', (e) => {
+            if (isMagnifierMode) return;
+            if (currentZoom > 1.0 && !e.target.closest('button') && !e.target.closest('.side-btn') && !e.target.closest('.floating-toolbar') && !e.target.closest('a')) {
+                isPanning = true;
+                hasDragged = false; 
+                flipbookWrapper.classList.add('is-panning');
+                bookZoomWrapper.classList.add('dragging');
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            if (Math.abs(e.clientX - startX - translateX) > 5 || Math.abs(e.clientY - startY - translateY) > 5) {
+                hasDragged = true;
+            }
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            applyTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isPanning) {
+                isPanning = false;
+                flipbookWrapper.classList.remove('is-panning');
+                bookZoomWrapper.classList.remove('dragging');
+                setTimeout(() => hasDragged = false, 50); 
+            }
+        });
+        
+        window.addEventListener('mouseleave', () => {
+            if (isPanning) {
+                isPanning = false;
+                flipbookWrapper.classList.remove('is-panning');
+                bookZoomWrapper.classList.remove('dragging');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (flipbookWrapper.classList.contains('hidden')) return;
+            if (e.key === 'ArrowRight') { e.preventDefault(); turnNext(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); turnPrev(); }
+        });
+
+        btnPrev.addEventListener('click', turnPrev);
+        btnNext.addEventListener('click', turnNext);
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => {});
+            else if (document.exitFullscreen) document.exitFullscreen();
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const icons = document.querySelectorAll('.fs-icon');
+            icons.forEach(icon => { icon.className = !document.fullscreenElement ? 'fas fa-expand fs-icon' : 'fas fa-compress fs-icon'; });
+        });
+
+        window.addEventListener('resize', () => { updateBookSize(); });
+
+    </script>
+</body>
+</html>
